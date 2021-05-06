@@ -28,15 +28,17 @@ executable rados
 
     -- Modules included in this executable, other than Main.
     other-modules: System.IO.Rados.Base,
-                   System.IO.Rados.Error
+                   System.IO.Rados.Error,
+                   Network.API
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:    base ^>=4.14.1.0,
                       inline-c,
                       mtl,
-                      bytestring
+                      bytestring,
+                      bits
 
-    extra-libraries:  rados
+    -- extra-libraries:  rados
     hs-source-dirs:   app
     default-language: Haskell2010

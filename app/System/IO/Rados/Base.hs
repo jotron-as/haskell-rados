@@ -51,10 +51,11 @@ tryS function action = do
     throwError $ makeError (fromIntegral errno) function strerror
   else return $ fromIntegral n
 
-withConfig :: (Monad m) => CephConfig -> ConnectionT m a -> m (Either RadosError a)
-withConfig conf (ConnectionT c) = runReaderT (runExceptT c) conf
+runConnection :: (Monad m) => CephConfig -> ConnectionT m a -> m (Either RadosError a)
+runConnection conf (ConnectionT c) = runReaderT (runExceptT c) conf
 
-runConnection = withConfig
+withConfig :: CephConfig -> Connection a -> IO (Either RadosError a)
+withConfig = runConnection
 
 newtype PoolT (m :: * -> *) a = PoolT (m a)
   deriving (Functor,Applicative,Monad)
