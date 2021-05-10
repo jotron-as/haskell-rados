@@ -10,6 +10,9 @@ import Foreign
 import Foreign.C.Error
 import Foreign.C.String
 import Foreign.C.Types
+import Control.Exception
+
+instance Exception RadosError
 
 data RadosError = Unknown  { errno     :: Int    -- ^ Error number (positive)
                            , cFunction :: String -- ^ The underlying C function
