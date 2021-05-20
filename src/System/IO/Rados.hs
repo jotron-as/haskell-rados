@@ -19,8 +19,10 @@ module System.IO.Rados
 , Pool(..)
 , CrushRule
 , Key
+, RadosError
   -- * Connection Functions
 , withConfig
+, capture
 -- * Connection Monad
 , MonadConnection
 , inPool
@@ -68,6 +70,9 @@ C.include "<string.h>"
 newtype ConnectionT (m :: * -> *) a = ConnectionT (ExceptT RadosError (ReaderT CephState m) a)
   deriving (Functor,Applicative,Monad,MonadError RadosError, MonadReader CephState)
 
+instance (Monad m) => MonadFail (ConnectionT m) where
+  fail = throwError . User
+
 instance MonadTrans ConnectionT where
   lift x = ConnectionT $ ExceptT $ ReaderT $ \_ -> Right <$> x
 
@@ -75,6 +80,11 @@ liftEitherT x = ConnectionT $ ExceptT $ ReaderT $ \_ -> x
 
 type Connection a = ConnectionT IO a
 type CrushRule = Word8
+
+-- | Helps you glue exceptions together when using PoolT or ConnectionT
+capture :: (Show e, MonadError RadosError m) => Either e a -> m a
+capture (Left err) = throw $ User $ show err
+capture (Right x)  = return x
 
 data CephConfig = CephConfig
   { configFile  :: FilePath
@@ -214,8 +224,6 @@ class (Monad p, Monad q) => MonadPool p q | p -> q where
   -- | Delete object
   remove      :: Key -> p ()
 
-  runPool :: p a -> PoolConfig -> q (Either RadosError a)
-
 instance (MonadIO m) => MonadIO (PoolT m) where
   liftIO io = PoolT $ ExceptT $ ReaderT $ \r -> do
     res <- liftIO $ try io
@@ -223,8 +231,13 @@ instance (MonadIO m) => MonadIO (PoolT m) where
       Left e  -> return $ Left $ User $ displayException (e :: IOException)
       Right x -> return $ Right $ x
 
+instance (Monad m) => MonadFail (PoolT m) where
+  fail = throwError . User . show
+
+instance MonadTrans PoolT where
+  lift x = PoolT $ ExceptT $ ReaderT $ \_ -> Right <$> x
+
 instance (MonadIO m) => MonadPool (PoolT m) m where
-  runPool = runPoolT
   writeFull key dat = void $ asks getCtx >>= \ctx -> tryS "rados_write_full" 
     [C.exp| int { rados_write_full($(void* ctx), $bs-cstr:key, $bs-cstr:dat, $bs-len:dat) } |]
 
