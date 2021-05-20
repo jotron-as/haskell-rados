@@ -60,6 +60,7 @@ main = downloadPics >>= either print (const $ putStrLn "Done")
 ```
 
 ## Docs
-Docs will be hosted soon.
+haddock docs are to be found [here][docs].
 
 [inline-c]: https://hackage.haskell.org/package/inline-c
+[docs]: https://www.hobson.space/docs/rados/

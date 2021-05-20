@@ -19,7 +19,7 @@ module System.IO.Rados
 , Pool(..)
 , CrushRule
 , Key
-, RadosError
+, RadosError(..)
   -- * Connection Functions
 , withConfig
 , capture

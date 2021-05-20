@@ -1,42 +1,28 @@
-cabal-version:      2.4
-name:               rados
-version:            0.1.0.0
+cabal-version: 2.4
+name:          rados
+version:       0.1.0.0
+license:       BSD-3-Clause
+license-file:  LICENSE
+bug-reports:   https://github.com/jotron-as/haskell-rados/issues
+synopsis:      Experimental Rados Bindings for haskell
+description:
+    Experimental Rados Bindings for haskell. They are very much inspired by the already existsing haskell
+    .
+    bindings, but with MTL style monad transformers and inline-c for the actual binding parts.
 
--- A short (one-line) description of the package.
--- synopsis:
-
--- A longer description of the package.
--- description:
-
--- A URL where users can report bugs.
--- bug-reports:
-
--- The license under which the package is released.
--- license:
-
--- The package author(s).
--- author:
-maintainer:         james.hobson@jotron.com
-
--- A copyright notice.
--- copyright:
--- category:
-extra-source-files: CHANGELOG.md
+source-repository head
+    type:     git
+    location: git://github.com/jotron-as/haskell-rados.git
 
 library
-
-    -- Modules included in this executable, other than Main.
-    exposed-modules: System.IO.Rados
-    other-modules:   System.IO.Rados.Error
-
-    -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
-    build-depends:    base < 5.0,
-                      inline-c,
-                      mtl,
-                      bytestring >= 0.11.0.0,
-                      bits,
-
-    extra-libraries:  rados
+    exposed-modules:  System.IO.Rados
     hs-source-dirs:   src
+    other-modules:    System.IO.Rados.Error
     default-language: Haskell2010
+    extra-libraries:  rados
+    build-depends:
+        base >=4.14.1.0 && <5.0,
+        inline-c >=0.9.1.4 && <0.10,
+        mtl >=2.2.2 && <2.3,
+        bytestring >=0.11.0.0 && <0.12,
+        bits >=0.5.3 && <0.6
