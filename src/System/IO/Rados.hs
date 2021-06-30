@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralisedNewtypeDeriving, FlexibleContexts, KindSignatures #-}
 {-# LANGUAGE QuasiQuotes, TemplateHaskell, ScopedTypeVariables, FunctionalDependencies #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, LambdaCase #-}
 {-
 Description: Monadic Bindings to librados
 
@@ -55,6 +55,7 @@ import Foreign.Marshal.Alloc
 import System.IO
 import Data.Maybe
 import Data.Word
+import System.Timeout
 
 import qualified Language.C.Inline as C
 import qualified Data.ByteString as B
@@ -89,6 +90,7 @@ capture (Right x)  = return x
 data CephConfig = CephConfig
   { configFile  :: FilePath
   , userName    :: String
+  , timeLimit   :: Int -- ^ Connection timeout in microseconds
   }
 
 type RadosT = Ptr ()
@@ -115,7 +117,7 @@ instance (MonadIO m) => MonadIO (ConnectionT m) where
 class (MonadIO m, MonadError RadosError m, MonadIO n) => MonadConnection m n | m -> n where
   cleanUp :: m ()
   radosConfReadFile :: FilePath -> m Int
-  radosConnectToCluster :: m Int
+  radosConnectToCluster :: Int -> m Int
   -- | Inside named pool, run a pool transaction
   inPool :: String -> PoolT n a -> m a
   -- | Inside a new pool (with name and crush rule given), run transaction
@@ -135,7 +137,10 @@ instance (MonadIO m) => MonadConnection (ConnectionT m) m where
     tryS "rados_conf_read_file" $ withCString file $ \cFile  ->
       [C.exp| int { rados_conf_read_file($(void* ptr), $(char* cFile)) } |]
 
-  radosConnectToCluster = asks getPtr >>= \ptr -> tryS "rados_connect" [C.exp| int { rados_connect($(void* ptr)) } |]
+  radosConnectToCluster time = asks getPtr >>= \ptr -> tryS "rados_connect" $
+    timeout time [C.exp| int { rados_connect($(void* ptr)) } |] >>= \case
+      Nothing -> throwIO $ User "rados_connect timed out"
+      Just x  -> return x
 
   inPool poolname pool = asks getPtr >>= \ptr -> do
     ioctx <- liftIO $ withCString poolname $ \pn -> do
@@ -173,6 +178,7 @@ cleanUp' e = cleanUp >> throwError e
 -- | With ceph config data, open a ceph connection.
 withConfig :: (MonadIO m) => CephConfig -> ConnectionT m a -> m (Either RadosError a)
 withConfig conf c = do
+  let limit = timeLimit conf
   ptr <- liftIO $ try $ withCString (userName conf) $ \clName ->
       alloca $ \rados_t_p_p -> do
         ret <- [C.block| int {
@@ -186,7 +192,7 @@ withConfig conf c = do
     Left e     -> return $ Left e
     Right ptr' -> flip runConnection ptr' $ do
       (radosConfReadFile $ configFile conf)
-      radosConnectToCluster `catchError` cleanUp'
+      radosConnectToCluster limit `catchError` cleanUp'
       ret <- c `catchError` cleanUp'
       cleanUp
       return ret

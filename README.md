@@ -39,6 +39,7 @@ takePicture d = shelly . silently . takePicture_ d
 
 conf = CephConfig { configFile = "/etc/ceph/ceph.conf"
                   , userName   = "admin"
+                  , timeLimit  = 1000000 -- 1 sec
                   }
 
 time2key = BS.toStrict . toLazyByteString . string8 . show

@@ -1,6 +1,6 @@
 cabal-version: 2.4
 name:          rados
-version:       0.1.0.0
+version:       0.2.0.0
 license:       BSD-3-Clause
 license-file:  LICENSE
 bug-reports:   https://github.com/jotron-as/haskell-rados/issues
